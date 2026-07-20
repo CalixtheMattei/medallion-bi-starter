@@ -5,9 +5,8 @@ A Docker Compose starter for an **open-source BI stack**: Dagster for orchestrat
 It ships with a synthetic e-commerce demo dataset so the whole pipeline runs end-to-end with `docker compose up` and **zero external credentials**. Swap in your own source database when you're ready — the pattern doesn't change, only the connection details do.
 
 ```
-[Source systems]
-  ├─ MySQL (bundled demo: synthetic e-commerce data)
-  └─ HubSpot API (optional second source, disabled by default)
+[Source: MySQL]
+  (bundled demo: synthetic e-commerce data — swap for your own database)
             │
             ▼
         [Dagster]
@@ -41,7 +40,7 @@ If you're evaluating whether Dagster + dbt + Postgres + Metabase can work as you
 
 ## What's demonstrated
 
-- **Two source patterns**: a database source (MySQL, chunked extraction with resume-on-crash) and an optional API source (HubSpot CRM), so you can see both shapes of ingestion.
+- **A database source pattern**: chunked extraction with resume-on-crash, ready to point at a real MySQL instance (see the `add-source` skill for adapting the pattern to an API source too).
 - **Medallion layering with enforced rules**: staging views never contain business logic; marts never query raw tables directly; naming conventions make the layer of any model obvious at a glance.
 - **Semantic layer sync**: dbt column descriptions push automatically into Metabase field metadata after every build, so a business user sees documentation in the BI tool without anyone maintaining it twice.
 - **Governance-as-code**: a small script (`scripts/add_guardrail_headers.py`) that stamps a "data source & freshness" caveat card onto dashboards — cheap, repeatable governance instead of tribal knowledge.

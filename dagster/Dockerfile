@@ -16,7 +16,6 @@ RUN pip install --no-cache-dir \
     pymysql==1.1.1 \
     pandas==2.2.3 \
     sqlalchemy==2.0.36 \
-    hubspot-api-client==9.0.0 \
     dbt-metabase==1.8.5
 
 WORKDIR /app

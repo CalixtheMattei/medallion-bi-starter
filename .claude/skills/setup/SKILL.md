@@ -19,7 +19,7 @@ See [AGENTS.md](../../../AGENTS.md) for full architecture and conventions. Short
 test -f .env || cp .env.example .env
 ```
 
-Tell the user: the defaults work as-is for the demo. If they want real credentials (HubSpot token, a real MySQL source), they can edit `.env` now or later — nothing below depends on it.
+Tell the user: the defaults work as-is for the demo. If they want to point at a real MySQL source, they can edit `.env` now or later — nothing below depends on it.
 
 ### 2 — Build and start
 
@@ -52,7 +52,7 @@ Verify raw tables landed:
 ```bash
 docker compose exec -T postgres psql -U postgres -d warehouse -c "\dt raw.*"
 ```
-Expect `shop_customers`, `shop_products`, `shop_orders`, `shop_order_items` (and `hubspot_*` tables only if `HUBSPOT_ACCESS_TOKEN` is set).
+Expect `shop_customers`, `shop_products`, `shop_orders`, `shop_order_items`.
 
 ### 5 — Build the dbt models
 
@@ -61,7 +61,7 @@ docker compose run --rm --no-deps --entrypoint dbt dagster_user_code build \
   --project-dir /dbt --profiles-dir /dbt
 ```
 
-Expect `CREATE VIEW` for staging/intermediate models and `SELECT N` for marts. If HubSpot isn't configured, the `hubspot` staging/mart models should show as skipped/disabled — that's expected, not an error.
+Expect `CREATE VIEW` for staging/intermediate models and `SELECT N` for marts.
 
 ### 6 — Verify a mart has rows
 
@@ -83,7 +83,7 @@ After the dbt build in step 5, model and column descriptions are already synced 
 ## Report to the user
 
 - Which services are healthy
-- Raw tables confirmed present (and whether HubSpot was included)
-- dbt build result (models built, any skipped, any errors)
+- Raw tables confirmed present
+- dbt build result (models built, any errors)
 - Mart row counts by activity_status
 - Next step: open Metabase and finish the setup wizard, or hand off to the `create-dashboard` skill to build the first dashboard

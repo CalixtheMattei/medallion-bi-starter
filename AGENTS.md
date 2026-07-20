@@ -6,7 +6,7 @@ This repository-level guidance applies to Codex, Claude, and other coding agents
 
 This repository is an open-source BI starter: a medallion-architecture data platform built on Dagster, dbt, Postgres, and Metabase, meant to be forked and adapted to a real source.
 
-Out of the box it ingests one bundled demo source (a synthetic e-commerce MySQL database) and one optional second source (HubSpot CRM, disabled unless `HUBSPOT_ACCESS_TOKEN` is set). The intent is for a user to swap the demo MySQL source for their own database with minimal changes, then add further sources following the same pattern.
+Out of the box it ingests one bundled demo source: a synthetic e-commerce MySQL database. The intent is for a user to swap it for their own database with minimal changes, then add further sources (database or API) following the same pattern — see the `add-source` skill.
 
 High-level flow:
 
@@ -82,11 +82,10 @@ The working tree may already contain user changes. Do not revert or overwrite un
 
 ### Dagster
 
-- `mysql_raw_load` is the core extract-load asset for the primary (database) source.
-- `hubspot_raw_load` demonstrates the API-source pattern and self-skips when unconfigured — use it as the template for adding another API source.
-- Scheduling behavior lives in `dagster/project/schedules.py`.
+- `mysql_raw_load` is the core extract-load asset. It's a full truncate-and-reload copy, not incremental replication — see "What 'extract' means here" in `docs/ARCHITECTURE.md` before assuming otherwise.
+- Scheduling behavior lives in `dagster/project/schedules.py`. The dbt build schedule runs a fixed offset after the extract schedule, not back-to-back — see "Scheduling" in `docs/ARCHITECTURE.md` for why, and reconsider that offset (or move to an event-driven trigger) if extract runtime grows.
 - If you change refresh cadence or timezone semantics, update both code and docs explicitly.
-- Prefer one extract/load asset (or asset group) per source, with source-specific jobs and schedules, so one source's failure doesn't block another's.
+- When adding a second source, prefer one extract/load asset (or asset group) per source, with source-specific jobs and schedules, so one source's failure doesn't block another's.
 
 ### SQL and analytics semantics
 
@@ -110,5 +109,5 @@ If you cannot run validation, say so clearly.
 
 - Do not expose secrets from `.env`.
 - Treat `.env` and local credentials as operator-managed files; do not rewrite them unless explicitly asked.
-- As more sources are added, prefer namespaced env vars (e.g. `HUBSPOT_*`, `<SOURCE>_*`) instead of generic shared names.
+- As more sources are added, prefer namespaced env vars (e.g. `<SOURCE>_*`) instead of generic shared names.
 - If you point this stack at a real production source, only ever use a read-only account, and never add code that writes back to a source system.

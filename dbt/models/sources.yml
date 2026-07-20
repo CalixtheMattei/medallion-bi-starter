@@ -1,14 +1,16 @@
 version: 2
 
 sources:
-  # ── Source 1: MySQL (database-source pattern) ────────────────────────────────
+  # ── MySQL source (database-source pattern) ──────────────────────────────────
   # Raw tables extracted by the `mysql_raw_load` Dagster asset. Each table lands
   # in the raw schema prefixed with the source name (MYSQL_SOURCE_PREFIX in .env).
   # Out of the box this is the bundled synthetic e-commerce demo database.
   - name: shop
     description: >
       E-commerce OLTP source (the bundled mysql-demo container by default).
-      Extracted daily at 03:00 UTC by Dagster into raw.shop_*.
+      Extracted daily at 03:00 UTC by Dagster into raw.shop_*. This is a
+      full truncate-and-reload copy, not incremental replication — see
+      "What 'extract' means here" in docs/ARCHITECTURE.md.
     schema: raw
     freshness:
       warn_after: {count: 24, period: hour}
@@ -42,19 +44,3 @@ sources:
           - name: id
             description: "Order item primary key."
             data_tests: [unique, not_null]
-
-  # ── Source 2: HubSpot CRM (API-source pattern, optional) ────────────────────
-  # Raw tables extracted by the `hubspot_raw_load` Dagster asset.
-  # Only present if HUBSPOT_ACCESS_TOKEN is set in .env.
-  - name: hubspot
-    description: >
-      HubSpot CRM objects fetched from the REST API. All property values arrive
-      as strings — staging models handle casting. Extracted daily at 02:30 UTC.
-    schema: raw
-    tables:
-      - name: hubspot_company
-        description: "CRM companies with all available properties."
-      - name: hubspot_deal
-        description: "CRM deals with all available properties."
-      - name: hubspot_owner
-        description: "CRM owners (sales reps / account managers)."

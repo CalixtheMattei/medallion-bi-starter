@@ -5,7 +5,7 @@ description: Scaffold a new data source into the stack — Dagster extract-load 
 
 # add-source
 
-Add a new source to the stack, following the two existing patterns (database extract via `assets_mysql_source.py`, API extract via `assets_hubspot.py`).
+Add a new source to the stack, following the existing database-extract pattern (`assets_mysql_source.py`), or adapting it to an API-extract shape when the new source is API-based rather than a queryable database.
 
 ## Stack context
 
@@ -14,7 +14,7 @@ See [AGENTS.md](../../../AGENTS.md) for the full contract. The rule that matters
 ## Step 1 — Clarify the shape
 
 Ask (or infer from what the user described):
-1. Is this a **database** source (like the bundled MySQL demo — bulk extract all/most tables) or an **API** source (like HubSpot — a handful of named objects, paginated)?
+1. Is this a **database** source (like the bundled MySQL demo — bulk extract all/most tables) or an **API** source (a handful of named objects, paginated, fetched over HTTP)?
 2. What should the raw-table prefix be? (`raw.<prefix>_<table>`) — short, lowercase, e.g. `crm`, `billing`, `support`.
 3. Is this replacing the bundled demo MySQL source, or adding an additional source alongside it?
 
@@ -26,10 +26,10 @@ Ask (or infer from what the user described):
 - Set `SOURCE_PREFIX` to the chosen prefix
 - Review `SKIP_TABLES` — start empty and add entries as you find tables that are too large, irrelevant, or pure application noise
 
-**API source** — copy `dagster/project/assets_hubspot.py` as a template:
-- New file `dagster/project/assets_<prefix>.py`
-- Keep the "skip if token unset" guard at the top of the asset function — every optional source should self-skip cleanly, not fail the run
-- Adapt pagination to the API's actual mechanism (cursor, offset, page token)
+**API source** — there's no bundled example in this template, but the shape to follow is the same as the database asset:
+- New file `dagster/project/assets_<prefix>.py`, one `@asset` function per source (or one for the whole source if it's a handful of objects)
+- Guard the top of the asset function on the credential env var being set, and `return` early with a log warning if it isn't — every optional source should self-skip cleanly, not fail the run
+- Paginate according to the API's actual mechanism (cursor, offset, page token) and write each page to Postgres incrementally, mirroring the chunked-write pattern in `assets_mysql_source.py`, so memory stays flat regardless of record count
 
 Register the new asset in `dagster/project/definitions.py` (add to `assets=[...]`) and add a job + schedule in `dagster/project/schedules.py`, following the existing per-source job pattern — do not fold it into `daily_full_pipeline_job`'s selection logic in a way that breaks source-level failure isolation.
 
@@ -48,7 +48,7 @@ For each raw table the user actually needs (don't build staging models for table
 - Drop soft-deleted rows if the source has that concept
 - **No business filters here** — those belong in the mart
 
-If this is an optional source (like HubSpot), gate it in `dbt_project.yml` the same way the `hubspot` folder is gated — an `+enabled` config keyed off the credential env var — so `dbt build` doesn't fail when the source isn't configured.
+If this is an optional source (one that can be unconfigured), gate its model folder in `dbt_project.yml` with an `+enabled: "{{ (env_var('<SOURCE>_TOKEN', '') != '') | as_bool }}"` config keyed off the same credential env var the Dagster asset checks — so `dbt build` doesn't fail when the source isn't configured.
 
 ## Step 5 — Tell the user what's next
 

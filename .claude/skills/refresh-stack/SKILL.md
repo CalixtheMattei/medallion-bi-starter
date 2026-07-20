@@ -45,7 +45,7 @@ docker compose exec -T postgres psql -U postgres -d warehouse -c "
 | MySQL `tinyint(1)` / bit flags | Usually lands as `text` (`'0'`/`'1'`) via pandas inference | Compare with `= '1'`, not `= 1` |
 | MySQL `int`, `bigint` | `bigint` | Compare with `= 1` (integer) |
 | MySQL `datetime`/`timestamp` | `text` | Cast with `::timestamp` |
-| API string properties (e.g. HubSpot) | `text` | Cast explicitly (`::numeric`, `::date`) — never assume type |
+| API string properties (if you've added an API source) | `text` | Cast explicitly (`::numeric`, `::date`) — never assume type |
 
 If the staging model uses `= 1` but the column is `text`, fix the comparison to `= '1'`. If it uses `= '1'` but the column is `bigint`, fix to `= 1`.
 
@@ -67,7 +67,7 @@ docker compose run --rm --no-deps --entrypoint dbt dagster_user_code run \
 Interpret the output:
 - `CREATE VIEW` → staging/intermediate model created
 - `SELECT N` → mart built with N rows (report this to the user)
-- `SKIP` on `hubspot.*` models with no error → expected when `HUBSPOT_ACCESS_TOKEN` is unset, not a failure
+- `SKIP` on a model with no error → expected if you've gated an optional source's models behind an `+enabled` config and that source's credentials are unset — not a failure
 - `ERROR` → read the full message; common causes are type mismatches (Step 2) or missing source tables (Step 1)
 
 ## Step 4 — Sync Metabase

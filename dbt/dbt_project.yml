@@ -29,19 +29,9 @@ models:
     staging:
       +schema:        analytics
       +materialized:  view
-      # HubSpot models only build when the optional source is configured —
-      # same switch the Dagster asset uses to skip its extract.
-      hubspot:
-        +enabled: "{{ (env_var('HUBSPOT_ACCESS_TOKEN', '') != '') | as_bool }}"
     intermediate:
       +schema:        analytics
       +materialized:  view
     marts:
       +schema:        analytics
       +materialized:  table
-      hubspot:
-        +enabled: "{{ (env_var('HUBSPOT_ACCESS_TOKEN', '') != '') | as_bool }}"
-
-seeds:
-  medallion_bi_starter:
-    +schema: analytics

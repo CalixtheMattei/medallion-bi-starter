@@ -1,8 +1,0 @@
-pipeline_id,pipeline_label,stage_id,stage_label,stage_category,stage_order
-default,Sales Pipeline,appointmentscheduled,Appointment Scheduled,Open,1
-default,Sales Pipeline,qualifiedtobuy,Qualified To Buy,Open,2
-default,Sales Pipeline,presentationscheduled,Presentation Scheduled,Open,3
-default,Sales Pipeline,decisionmakerboughtin,Decision Maker Bought-In,Open,4
-default,Sales Pipeline,contractsent,Contract Sent,Open,5
-default,Sales Pipeline,closedwon,Closed Won,Closed Won,6
-default,Sales Pipeline,closedlost,Closed Lost,Closed Lost,7

@@ -37,23 +37,8 @@ Plain-English reference for every gold-layer mart in the demo stack — written 
 
 ---
 
-## `mart_hubspot_pipeline` (optional — requires `HUBSPOT_ACCESS_TOKEN`)
-
-**One row per HubSpot deal.** Answers: how much pipeline is open, by stage, and who owns it?
-
-| Column | What it means |
-|---|---|
-| `stage` / `stage_category` | Resolved from HubSpot's raw stage ID via the `hubspot_pipeline_stage_labels` seed. If a deal's stage isn't in the seed, the raw ID shows through — that's a signal to update the seed for your portal's pipelines |
-| `owner_name` / `owner_email` | The HubSpot owner (sales rep) on the deal |
-
-**Good dashboard questions:** "What's our open pipeline by stage?" · "Win rate per owner?"
-
-**Caveat:** the bundled `hubspot_pipeline_stage_labels.csv` seed ships with HubSpot's default "Sales Pipeline" stages — replace it with your portal's actual pipelines and stage IDs before trusting this mart.
-
----
-
 ## Adding your own mart
 
 When you build a new mart (by hand or via the `adapt-query` skill):
-1. Add its description and column docs to `dbt/models/marts/schema.yml` (or `dbt/models/marts/hubspot/schema.yml` for a HubSpot-sourced mart) — that's what Metabase shows.
+1. Add its description and column docs to `dbt/models/marts/schema.yml` — that's what Metabase shows.
 2. Add an entry to this file, in the same three-part shape: what question it answers, what each non-obvious column means, and one caveat a dashboard builder needs before trusting a number.

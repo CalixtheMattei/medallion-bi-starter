@@ -103,8 +103,6 @@ services:
       MYSQL_PASSWORD:        ${MYSQL_PASSWORD:-readonly}
       MYSQL_DATABASE:        ${MYSQL_DATABASE:-shop}
       MYSQL_SOURCE_PREFIX:   ${MYSQL_SOURCE_PREFIX:-shop}
-      # HubSpot CRM source (optional second source — leave unset to skip)
-      HUBSPOT_ACCESS_TOKEN:  ${HUBSPOT_ACCESS_TOKEN:-}
       # Metabase — used by dbt-metabase to sync descriptions after dbt build
       METABASE_URL:           http://metabase:3000
       METABASE_USER:          ${METABASE_USER}
