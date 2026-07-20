@@ -1,0 +1,9 @@
+# Tells the Dagster webserver and daemon where to find the user code (assets, jobs, etc.)
+# The dagster_user_code container exposes a gRPC server on port 4000.
+# "dagster_user_code" is the Docker Compose service name — used as the hostname on the stack network.
+
+load_from:
+  - grpc_server:
+      host: dagster_user_code
+      port: 4000
+      location_name: "medallion_bi_starter"

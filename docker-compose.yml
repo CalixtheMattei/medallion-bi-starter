@@ -1,0 +1,216 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Open-source BI starter: Dagster → Postgres → dbt → Metabase
+#
+# Quick start:
+#   cp .env.example .env
+#   docker compose up -d --build                  # builds images + starts all services
+#   # Open Dagit → http://localhost:3001
+#   # Assets → materialize `mysql_raw_load`       # load demo source tables to raw.*
+#   # Assets → "Materialize all"                  # rebuild dbt models in analytics.*
+#   # Open Metabase → http://localhost:3000
+#
+# Service URLs:
+#   Dagit (Dagster UI) → http://localhost:3001  (ready in ~20s)
+#   Metabase           → http://localhost:3000  (ready in ~60–90s)
+#   Postgres           → localhost:5432
+#   MySQL demo source  → localhost:3307
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── MySQL demo source ───────────────────────────────────────────────────────
+  # Stands in for the production OLTP database you'd extract from in real life.
+  # Seeded on first start with a synthetic e-commerce dataset (demo-source/seed.sql).
+  # To extract from a real MySQL instead: point MYSQL_* in .env at it and
+  # remove (or ignore) this service.
+  mysql-demo:
+    image: mysql:8.4
+    container_name: dw_mysql_demo
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DEMO_MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${DEMO_MYSQL_PORT:-3307}:3306"
+    volumes:
+      - mysql_demo_data:/var/lib/mysql
+      - ./demo-source/seed.sql:/docker-entrypoint-initdb.d/10-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DEMO_MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [stack]
+
+  # ── Postgres (the warehouse) ────────────────────────────────────────────────
+  # init-db.sh creates three databases on first start:
+  #   warehouse → raw schema (EL landing) + analytics schema (dbt output)
+  #   dagster   → Dagster run history, event logs, schedule state
+  #   metabase  → Metabase application data
+  postgres:
+    image: postgres:16-alpine
+    container_name: dw_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB:       postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/10-init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [stack]
+
+  # ── Dagster user code (gRPC code server) ────────────────────────────────────
+  # Runs dbt parse at startup to generate manifest.json, then starts the gRPC
+  # server on port 4000. The webserver and daemon connect to this service.
+  # dagster.yaml + workspace.yaml are baked into the image at /var/lib/dagster/.
+  dagster_user_code:
+    build:
+      context: ./dagster
+      dockerfile: Dockerfile
+    container_name: dw_dagster_user_code
+    restart: unless-stopped
+    entrypoint: ["/app/entrypoint_code_server.sh"]
+    expose:
+      - "4000"
+    volumes:
+      - ./dbt:/dbt                          # dbt project files (models, seeds, macros)
+      - ./dagster/project:/app/project      # live-reload Python assets without rebuild
+      - dagster_home:/var/lib/dagster
+    environment:
+      DBT_POSTGRES_HOST:     postgres
+      DBT_POSTGRES_PORT:     "5432"
+      DBT_POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      DBT_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DBT_POSTGRES_DBNAME:   ${WAREHOUSE_DB:-warehouse}
+      DAGSTER_PG_HOST:       postgres
+      DAGSTER_PG_PORT:       "5432"
+      DAGSTER_PG_USER:       ${POSTGRES_USER:-postgres}
+      DAGSTER_PG_PASSWORD:   ${POSTGRES_PASSWORD:-postgres}
+      DAGSTER_PG_DB:         ${DAGSTER_DB:-dagster}
+      # MySQL source (demo container by default — point at your own DB in .env)
+      MYSQL_HOST:            ${MYSQL_HOST:-mysql-demo}
+      MYSQL_PORT:            ${MYSQL_PORT:-3306}
+      MYSQL_USER:            ${MYSQL_USER:-reader}
+      MYSQL_PASSWORD:        ${MYSQL_PASSWORD:-readonly}
+      MYSQL_DATABASE:        ${MYSQL_DATABASE:-shop}
+      MYSQL_SOURCE_PREFIX:   ${MYSQL_SOURCE_PREFIX:-shop}
+      # HubSpot CRM source (optional second source — leave unset to skip)
+      HUBSPOT_ACCESS_TOKEN:  ${HUBSPOT_ACCESS_TOKEN:-}
+      # Metabase — used by dbt-metabase to sync descriptions after dbt build
+      METABASE_URL:           http://metabase:3000
+      METABASE_USER:          ${METABASE_USER}
+      METABASE_PASSWORD:      ${METABASE_PASSWORD}
+      METABASE_DATABASE_NAME: ${METABASE_DATABASE_NAME:-warehouse}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql-demo:
+        condition: service_healthy
+    networks: [stack]
+
+  # -- Dagster webserver (Dagit UI) ─────────────────────────────────────────────
+  # Serves the Dagit web UI on port 3001.
+  # workspace.yaml is baked into DAGSTER_HOME — auto-discovered, no -w flag needed.
+  dagster_webserver:
+    build:
+      context: ./dagster
+      dockerfile: Dockerfile
+    container_name: dw_dagster_webserver
+    restart: unless-stopped
+    command: dagster-webserver -h 0.0.0.0 -p 3001 -w /var/lib/dagster/workspace.yaml
+    ports:
+      - "${DAGSTER_PORT:-3001}:3001"
+    volumes:
+      - dagster_home:/var/lib/dagster
+    environment:
+      DAGSTER_PG_HOST:     postgres
+      DAGSTER_PG_PORT:     "5432"
+      DAGSTER_PG_USER:     ${POSTGRES_USER:-postgres}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DAGSTER_PG_DB:       ${DAGSTER_DB:-dagster}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dagster_user_code:
+        condition: service_started
+    networks: [stack]
+
+  # ── Dagster daemon (schedules + sensors) ─────────────────────────────────────
+  # Handles scheduled runs and sensors.
+  # workspace.yaml is baked into DAGSTER_HOME — auto-discovered by the daemon.
+  dagster_daemon:
+    build:
+      context: ./dagster
+      dockerfile: Dockerfile
+    container_name: dw_dagster_daemon
+    restart: on-failure
+    command: dagster-daemon run -w /var/lib/dagster/workspace.yaml
+    volumes:
+      - dagster_home:/var/lib/dagster
+    environment:
+      DAGSTER_PG_HOST:     postgres
+      DAGSTER_PG_PORT:     "5432"
+      DAGSTER_PG_USER:     ${POSTGRES_USER:-postgres}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DAGSTER_PG_DB:       ${DAGSTER_DB:-dagster}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dagster_user_code:
+        condition: service_started
+    networks: [stack]
+
+  # ── Metabase (BI / Dashboards) ───────────────────────────────────────────────
+  # Open http://localhost:3000 after ~60-90s startup.
+  # Connect: Postgres → host=postgres, port=5432, db=warehouse, schema=analytics
+  metabase:
+    image: metabase/metabase:v0.50.20
+    container_name: dw_metabase
+    restart: unless-stopped
+    environment:
+      MB_DB_TYPE:    postgres
+      MB_DB_HOST:    postgres
+      MB_DB_PORT:    "5432"
+      MB_DB_USER:    ${POSTGRES_USER:-postgres}
+      MB_DB_PASS:    ${POSTGRES_PASSWORD:-postgres}
+      MB_DB_DBNAME:  ${METABASE_DB:-metabase}
+      JAVA_TIMEZONE: UTC
+    ports:
+      - "${METABASE_PORT:-3000}:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [stack]
+
+# ── Networks ───────────────────────────────────────────────────────────────────
+networks:
+  stack:
+    driver: bridge
+
+# ── Volumes ────────────────────────────────────────────────────────────────────
+volumes:
+  pg_data:          # Postgres data (all databases)
+  mysql_demo_data:  # MySQL demo source data
+  dagster_home:     # Dagster DAGSTER_HOME — config baked in image; volume persists run artifacts
+  metabase_data:    # Metabase application state

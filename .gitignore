@@ -1,0 +1,17 @@
+/.env
+
+# dbt generated artifacts
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Python bytecode
+**/__pycache__/
+**/*.pyc
+
+# OS cruft
+.DS_Store
+
+# Editor / agent tooling local state
+.claude/settings.local.json
+.claude/worktrees/

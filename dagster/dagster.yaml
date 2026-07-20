@@ -1,0 +1,22 @@
+# Dagster instance configuration.
+# Tells Dagster to use Postgres for run history, event logs, and schedule state.
+# This file is mounted into DAGSTER_HOME (/var/lib/dagster) inside each Dagster container.
+#
+# Env vars are injected by docker-compose.yml:
+#   DAGSTER_PG_USER, DAGSTER_PG_PASSWORD, DAGSTER_PG_HOST, DAGSTER_PG_DB, DAGSTER_PG_PORT
+
+storage:
+  postgres:
+    postgres_db:
+      username:
+        env: DAGSTER_PG_USER
+      password:
+        env: DAGSTER_PG_PASSWORD
+      hostname:
+        env: DAGSTER_PG_HOST
+      db_name:
+        env: DAGSTER_PG_DB
+      port:
+        env: DAGSTER_PG_PORT
+
+# Note: DagsterDaemonScheduler is the default in Dagster 1.9+ and must NOT be declared here.
