@@ -1,0 +1,47 @@
+name: "medallion_bi_starter"
+version: "1.0.0"
+config-version: 2
+
+profile: "medallion_bi_starter"
+
+model-paths:    ["models"]
+seed-paths:     ["seeds"]
+test-paths:     ["tests"]
+macro-paths:    ["macros"]
+analysis-paths: ["analyses"]
+
+clean-targets: ["target", "dbt_packages"]
+
+# ── Business thresholds ───────────────────────────────────────────────────────
+# Change these vars to update activity status definitions across all marts at once.
+# Do NOT scatter interval literals in SQL files — reference these instead.
+vars:
+  activity_active_days: 30     # days since last order → "active"
+  activity_slowing_days: 90    # days since last order → "slowing" (beyond this = "dormant")
+
+# ── Model configuration ───────────────────────────────────────────────────────
+# All models write to the `analytics` schema.
+#   staging/      → views  (cheap, always fresh, 1:1 with source tables)
+#   intermediate/ → views  (reusable joins/aggregations, not user-facing)
+#   marts/        → tables (materialized, query-friendly for Metabase)
+models:
+  medallion_bi_starter:
+    staging:
+      +schema:        analytics
+      +materialized:  view
+      # HubSpot models only build when the optional source is configured —
+      # same switch the Dagster asset uses to skip its extract.
+      hubspot:
+        +enabled: "{{ (env_var('HUBSPOT_ACCESS_TOKEN', '') != '') | as_bool }}"
+    intermediate:
+      +schema:        analytics
+      +materialized:  view
+    marts:
+      +schema:        analytics
+      +materialized:  table
+      hubspot:
+        +enabled: "{{ (env_var('HUBSPOT_ACCESS_TOKEN', '') != '') | as_bool }}"
+
+seeds:
+  medallion_bi_starter:
+    +schema: analytics

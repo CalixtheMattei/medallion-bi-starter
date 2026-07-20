@@ -1,0 +1,60 @@
+version: 2
+
+sources:
+  # ── Source 1: MySQL (database-source pattern) ────────────────────────────────
+  # Raw tables extracted by the `mysql_raw_load` Dagster asset. Each table lands
+  # in the raw schema prefixed with the source name (MYSQL_SOURCE_PREFIX in .env).
+  # Out of the box this is the bundled synthetic e-commerce demo database.
+  - name: shop
+    description: >
+      E-commerce OLTP source (the bundled mysql-demo container by default).
+      Extracted daily at 03:00 UTC by Dagster into raw.shop_*.
+    schema: raw
+    freshness:
+      warn_after: {count: 24, period: hour}
+      error_after: {count: 48, period: hour}
+    loaded_at_field: date_created
+    tables:
+      - name: shop_customers
+        description: "Customer accounts. Includes soft-deleted rows (is_deleted flag)."
+        columns:
+          - name: id
+            description: "Customer primary key."
+            data_tests: [unique, not_null]
+
+      - name: shop_products
+        description: "Product catalog. Prices stored as integer cents."
+        columns:
+          - name: id
+            description: "Product primary key."
+            data_tests: [unique, not_null]
+
+      - name: shop_orders
+        description: "Order headers. Status is a raw integer code, decoded in staging."
+        columns:
+          - name: id
+            description: "Order primary key."
+            data_tests: [unique, not_null]
+
+      - name: shop_order_items
+        description: "Order line items. unit_price_cents is the price at purchase time."
+        columns:
+          - name: id
+            description: "Order item primary key."
+            data_tests: [unique, not_null]
+
+  # ── Source 2: HubSpot CRM (API-source pattern, optional) ────────────────────
+  # Raw tables extracted by the `hubspot_raw_load` Dagster asset.
+  # Only present if HUBSPOT_ACCESS_TOKEN is set in .env.
+  - name: hubspot
+    description: >
+      HubSpot CRM objects fetched from the REST API. All property values arrive
+      as strings — staging models handle casting. Extracted daily at 02:30 UTC.
+    schema: raw
+    tables:
+      - name: hubspot_company
+        description: "CRM companies with all available properties."
+      - name: hubspot_deal
+        description: "CRM deals with all available properties."
+      - name: hubspot_owner
+        description: "CRM owners (sales reps / account managers)."

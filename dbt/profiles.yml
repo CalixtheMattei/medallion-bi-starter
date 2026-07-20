@@ -1,0 +1,14 @@
+medallion_bi_starter:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      # Connection values read from env vars injected by docker-compose.yml.
+      # Defaults make `dbt debug` work outside Docker too (if Postgres is on localhost).
+      host:     "{{ env_var('DBT_POSTGRES_HOST',     'localhost') }}"
+      port:     "{{ env_var('DBT_POSTGRES_PORT',     '5432') | int }}"
+      user:     "{{ env_var('DBT_POSTGRES_USER',     'postgres') }}"
+      password: "{{ env_var('DBT_POSTGRES_PASSWORD', 'postgres') }}"
+      dbname:   "{{ env_var('DBT_POSTGRES_DBNAME',   'warehouse') }}"
+      schema: analytics    # default write schema; overridden per-model in dbt_project.yml
+      threads: 4

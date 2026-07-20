@@ -1,0 +1,58 @@
+version: 2
+
+# Model + column descriptions are synced to Metabase automatically after every
+# dbt build (see _sync_metabase_descriptions in dagster/project/assets.py).
+# Write them for the business user reading a Metabase tooltip, not for engineers.
+
+models:
+  - name: mart_customer_activity
+    description: >
+      One row per customer with lifetime order history and an activity status
+      (active / slowing / dormant / never_ordered). Thresholds are defined
+      once in dbt_project.yml vars. Refreshed daily at 04:00 UTC.
+    columns:
+      - name: customer_id
+        description: "Customer primary key (from the source system)."
+        data_tests: [unique, not_null]
+      - name: customer_name
+        description: "Customer full name."
+      - name: country_code
+        description: "ISO 3166-1 alpha-2 country code."
+      - name: customer_since
+        description: "Account creation date in the source system."
+      - name: lifetime_orders
+        description: "Count of revenue-generating orders (paid or shipped)."
+      - name: lifetime_revenue
+        description: "Sum of order totals across all revenue-generating orders."
+      - name: first_order_at
+        description: "Timestamp of the first revenue-generating order."
+      - name: last_order_at
+        description: "Timestamp of the most recent revenue-generating order."
+      - name: activity_status
+        description: >
+          active = ordered in the last 30 days · slowing = 31-90 days ·
+          dormant = 90+ days · never_ordered = no paid/shipped order.
+        data_tests:
+          - accepted_values:
+              values: ['active', 'slowing', 'dormant', 'never_ordered']
+
+  - name: mart_revenue_monthly
+    description: >
+      Revenue per month and product category. Counts only paid or shipped
+      orders — cancelled and pending orders are excluded. Refreshed daily
+      at 04:00 UTC.
+    columns:
+      - name: order_month
+        description: "First day of the order month."
+        data_tests: [not_null]
+      - name: category
+        description: "Product category."
+        data_tests: [not_null]
+      - name: orders
+        description: "Distinct revenue-generating orders in the month × category."
+      - name: units_sold
+        description: "Total units across those orders."
+      - name: revenue
+        description: "Sum of line totals (price at purchase time, discounts included)."
+      - name: avg_order_value
+        description: "Revenue divided by distinct orders."
