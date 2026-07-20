@@ -60,6 +60,7 @@ Then:
 2. Materialize `mysql_raw_load` (loads the demo e-commerce data into `raw.*`)
 3. Materialize all dbt assets (builds `analytics.stg_*` → `analytics.mart_*`)
 4. Open Metabase → http://localhost:3000, finish the setup wizard using the credentials from `.env`, connect it to the `warehouse` Postgres database (schema `analytics`)
+5. Optional: `python3 scripts/bootstrap_demo_dashboard.py` builds a "Welcome" dashboard from the demo marts automatically — a nicer landing point than an empty Metabase instance
 
 If you have an AI coding agent (Claude Code, Codex) available, the `setup` skill in [.claude/skills/](.claude/skills/) walks through all of this for you — see [Agent skills](#agent-skills) below.
 
@@ -79,9 +80,9 @@ Nothing else in the stack needs to change. See the `add-source` agent skill for 
 ```
 dagster/           Dagster user code: extract/load assets, schedules, Dockerfile
 dbt/                dbt project: staging → intermediate → marts, sources.yml, seeds
-demo-source/        Synthetic e-commerce seed data (deterministic, safe to commit)
+demo-source/        Synthetic e-commerce seed data + its generator (deterministic, safe to commit)
 docs/               Architecture guide and mart reference
-scripts/            One-off Metabase automation (guardrail headers, etc.)
+scripts/            One-off Metabase automation (guardrail headers, welcome dashboard, etc.)
 .claude/skills/      Agent skills for Claude Code / Codex — see below
 ```
 

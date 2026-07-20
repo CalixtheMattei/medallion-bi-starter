@@ -95,7 +95,7 @@ After every `dbt build`, a Dagster step pushes every model and column descriptio
 
 ### 3.4 Metabase — the BI tool
 
-Connects to `warehouse` / schema `analytics` only — it never touches `raw`. Business users build questions and dashboards against `mart_*` tables. `scripts/add_guardrail_headers.py` demonstrates stamping a "data source & freshness" caveat card onto a dashboard automatically — cheap governance instead of tribal knowledge that a metric has a footnote.
+Connects to `warehouse` / schema `analytics` only — it never touches `raw`. Business users build questions and dashboards against `mart_*` tables. `scripts/add_guardrail_headers.py` demonstrates stamping a "data source & freshness" caveat card onto a dashboard automatically — cheap governance instead of tribal knowledge that a metric has a footnote. `scripts/bootstrap_demo_dashboard.py` builds a small "Welcome" dashboard from the two demo marts, so the first thing a new user sees in Metabase is a working example rather than an empty instance.
 
 ### 3.5 Scheduling: why the extract and the build don't run back-to-back
 

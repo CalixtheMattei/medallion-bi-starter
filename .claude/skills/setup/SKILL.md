@@ -80,10 +80,21 @@ Open http://localhost:3000. On first load Metabase runs its setup wizard:
 
 After the dbt build in step 5, model and column descriptions are already synced into Metabase automatically (via `dbt-metabase`, triggered by the `dbt_project_assets` Dagster asset) — the user should see them as table/field descriptions once the database is added.
 
+### 8 — Bootstrap the welcome dashboard (optional, recommended)
+
+Once the database is added in Metabase:
+
+```bash
+python3 scripts/bootstrap_demo_dashboard.py
+```
+
+This builds a small "Welcome" dashboard from the two demo marts — three real charts plus a friendly intro card — so the user's first view of Metabase is a working example instead of an empty instance. It's idempotent and safe to re-run. Report the dashboard URL it prints.
+
 ## Report to the user
 
 - Which services are healthy
 - Raw tables confirmed present
 - dbt build result (models built, any errors)
 - Mart row counts by activity_status
-- Next step: open Metabase and finish the setup wizard, or hand off to the `create-dashboard` skill to build the first dashboard
+- Welcome dashboard URL, if bootstrapped
+- Next step: open Metabase, or hand off to the `create-dashboard` skill to build further dashboards

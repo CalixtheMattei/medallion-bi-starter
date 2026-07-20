@@ -20,7 +20,7 @@ This is not a product app. Treat it as a local-first warehouse and BI repo desig
 
 - `dagster/`: Dagster code, asset definitions, schedule definitions, Docker image for the code server.
 - `dbt/`: dbt project, models, macros, profiles, seeds, compiled artifacts.
-- `demo-source/`: synthetic seed data for the bundled MySQL demo source (deterministic, safe to regenerate/edit).
+- `demo-source/`: synthetic seed data for the bundled MySQL demo source, plus `generate_seed.py` which produced it (deterministic — re-run after editing it to regenerate `seed.sql`).
 - `docs/`: architecture and mart documentation.
 - `docker-compose.yml`: local stack entrypoint.
 - `init-db.sh`: Postgres bootstrap for `warehouse`, `dagster`, and `metabase` databases.
