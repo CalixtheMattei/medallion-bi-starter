@@ -14,9 +14,10 @@ RUN pip install --no-cache-dir \
     dbt-core==1.9.4 \
     dbt-postgres==1.9.1 \
     pymysql==1.1.1 \
+    cryptography==43.0.3 \
     pandas==2.2.3 \
     sqlalchemy==2.0.36 \
-    dbt-metabase==1.8.5
+    dbt-metabase==1.7.5
 
 WORKDIR /app
 

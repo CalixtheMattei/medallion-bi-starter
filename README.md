@@ -55,12 +55,12 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Then:
-1. Open Dagit → http://localhost:3001
-2. Materialize `mysql_raw_load` (loads the demo e-commerce data into `raw.*`)
-3. Materialize all dbt assets (builds `analytics.stg_*` → `analytics.mart_*`)
-4. Open Metabase → http://localhost:3000, finish the setup wizard using the credentials from `.env`, connect it to the `warehouse` Postgres database (schema `analytics`)
-5. Optional: `python3 scripts/bootstrap_demo_dashboard.py` builds a "Welcome" dashboard from the demo marts automatically — a nicer landing point than an empty Metabase instance
+Then, in this exact order:
+
+1. In Dagit (http://localhost:3001) → **Jobs**, run `daily_mysql_ingest_job` — loads the demo e-commerce data into `raw.*`. (Don't use the asset graph's "Materialize all" button — it has no way to know this must finish before the dbt build starts, so it races the two and the dbt build fails looking for tables that don't exist yet.)
+2. `python3 scripts/bootstrap_metabase.py` — completes Metabase's setup wizard and connects the `warehouse` Postgres database automatically, using the credentials from `.env`. No browser required, and it's self-healing if `.env`'s placeholder password gets rejected by Metabase's strength check (see `.env.example`).
+3. In Dagit → **Jobs**, run `daily_dbt_job` — builds `analytics.stg_*` → `analytics.mart_*` and syncs descriptions into Metabase. **This must run after step 2, not before** — the sync step it triggers hard-fails the whole job if Metabase doesn't already have the `warehouse` database registered.
+4. Optional: `python3 scripts/bootstrap_demo_dashboard.py` builds a "Welcome" dashboard from the demo marts automatically — a nicer landing point than an empty Metabase instance
 
 If you have an AI coding agent (Claude Code, Codex) available, the `setup` skill in [.claude/skills/](.claude/skills/) walks through all of this for you — see [Agent skills](#agent-skills) below.
 

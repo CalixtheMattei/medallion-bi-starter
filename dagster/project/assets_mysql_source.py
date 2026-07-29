@@ -136,11 +136,9 @@ def mysql_raw_load(context: AssetExecutionContext, config: MysqlLoadConfig):
         try:
             total_rows = 0
             offset = 0
-            # Truncate before entering the chunk loop so that a retry on
-            # any chunk starts from a clean slate (avoids duplicate rows).
-            with pg.connect() as conn:
-                conn.execute(text(f'TRUNCATE TABLE IF EXISTS raw."{target}"'))
-                conn.commit()
+            # No explicit TRUNCATE needed: the first chunk below uses
+            # if_exists="replace", which drops and recreates the table — so a
+            # retry (which always restarts at offset 0) starts from a clean slate.
             first_chunk = True
             while True:
                 chunk = pd.read_sql(

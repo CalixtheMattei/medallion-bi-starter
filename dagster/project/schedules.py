@@ -19,7 +19,7 @@ daily_mysql_3am_schedule = ScheduleDefinition(
     name="daily_mysql_3am",
     job=daily_mysql_ingest_job,
     cron_schedule="0 3 * * *",
-    timezone="UTC",
+    execution_timezone="UTC",
     run_config=RunConfig(ops={"mysql_raw_load": MysqlLoadConfig(full_refresh=True)}),
 )
 
@@ -37,5 +37,5 @@ daily_dbt_4am_schedule = ScheduleDefinition(
     name="daily_dbt_4am",
     job=daily_dbt_job,
     cron_schedule="0 4 * * *",
-    timezone="UTC",
+    execution_timezone="UTC",
 )

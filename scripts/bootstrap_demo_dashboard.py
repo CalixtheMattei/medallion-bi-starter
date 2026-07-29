@@ -8,12 +8,14 @@ Entirely optional — the stack works fine without it. Idempotent: re-running
 finds and skips a dashboard that already has the welcome marker.
 
 Usage:
-  1. Finish the Metabase setup wizard and add the `warehouse` Postgres database
-     (see README "Quick start" / the `setup` agent skill).
-  2. Run `dbt build` at least once so mart_customer_activity and
+  1. python3 scripts/bootstrap_metabase.py (completes Metabase setup + connects
+     the `warehouse` database) — see README "Quick start" / the `setup` agent skill.
+  2. Run the daily_dbt_job Dagster job at least once so mart_customer_activity and
      mart_revenue_monthly exist and have rows.
-  3. METABASE_USER / METABASE_PASSWORD must be set in the environment (.env).
-  4. python3 scripts/bootstrap_demo_dashboard.py
+  3. python3 scripts/bootstrap_demo_dashboard.py
+
+Reads METABASE_USER / METABASE_PASSWORD from .env directly — no need to `export`
+or `source` it first.
 """
 
 import os
@@ -23,7 +25,27 @@ import urllib.error
 import urllib.request
 import json
 
-BASE   = os.environ.get("METABASE_URL", "http://localhost:3000")
+ENV_PATH = os.environ.get("ENV_FILE", ".env")
+
+
+def load_dotenv(path):
+    """Populate missing os.environ entries from a .env file. Real env vars win."""
+    if not os.path.exists(path):
+        return
+    with open(path) as f:
+        for line in f:
+            line = line.split("#", 1)[0].strip()
+            if not line or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key, value = key.strip(), value.strip()
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+load_dotenv(ENV_PATH)
+
+BASE   = os.environ.get("METABASE_URL", f"http://localhost:{os.environ.get('METABASE_PORT', '3000')}")
 MARKER = "<!-- welcome-dashboard-v1 -->"
 
 
